@@ -30,8 +30,8 @@ pub trait IntegerSquareRoot {
     ///
     /// [wiki_article]: https://en.wikipedia.org/wiki/Integer_square_root
     fn integer_sqrt(&self) -> Self
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         self.integer_sqrt_checked()
             .expect("cannot calculate square root of negative number")
@@ -40,8 +40,36 @@ pub trait IntegerSquareRoot {
     /// Find the integer square root, returning `None` if the number is negative (this can never
     /// happen for unsigned types).
     fn integer_sqrt_checked(&self) -> Option<Self>
-    where
-        Self: Sized;
+        where
+            Self: Sized;
+}
+
+// copied const version
+pub const fn sqrt_integer(value: u32) -> u32 {
+    if value == 0 {
+        return 0;
+    }
+
+    // Compute bit, the largest power of 4 <= n
+    let max_shift: u32 = 0u32.leading_zeros() - 1;
+    let shift: u32 = (max_shift - value.leading_zeros()) & !1;
+    let mut bit = 1 << shift;
+
+    // Algorithm based on the implementation in:
+    // https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Binary_numeral_system_(base_2)
+    // Note that result/bit are logically unsigned (even if T is signed).
+    let mut n = value;
+    let mut result = 0;
+    while bit != 0 {
+        if n >= (result + bit) {
+            n = n - (result + bit);
+            result = (result >> 1) + bit;
+        } else {
+            result = result >> 1;
+        }
+        bit = bit >> 2;
+    }
+    return result;
 }
 
 impl<T: num_traits::PrimInt> IntegerSquareRoot for T {
@@ -81,6 +109,7 @@ impl<T: num_traits::PrimInt> IntegerSquareRoot for T {
 mod tests {
     use super::IntegerSquareRoot;
     use core::{i8, u16, u64, u8};
+    use sqrt_integer;
 
     macro_rules! gen_tests {
         ($($type:ty => $fn_name:ident),*) => {
@@ -149,6 +178,22 @@ mod tests {
         ];
         for &(in_, out) in tests.iter() {
             assert_eq!(in_.integer_sqrt(), out, "in {}", in_);
+        }
+    }
+
+    #[test]
+    fn test_const() {
+        let tests = [
+            (0, 0),
+            (1, 1),
+            (2, 1),
+            (3, 1),
+            (4, 2),
+            (81, 9),
+            (80, 8),
+        ];
+        for &(in_, out) in tests.iter() {
+            assert_eq!(sqrt_integer(in_), out, "in {}", in_);
         }
     }
 }
