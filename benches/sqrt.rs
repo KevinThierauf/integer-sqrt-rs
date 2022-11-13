@@ -1,9 +1,10 @@
 #![feature(test)]
 
-extern crate test;
-use test::{black_box, Bencher};
-
 extern crate integer_sqrt;
+extern crate test;
+
+use test::{Bencher, black_box};
+
 use integer_sqrt::IntegerSquareRoot;
 
 // Use f64::sqrt to compute the integer sqrt
