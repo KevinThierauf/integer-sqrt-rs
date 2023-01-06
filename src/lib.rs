@@ -29,12 +29,8 @@ pub trait IntegerSquareRoot {
     /// For negative numbers (`i` family) this function will panic on negative input
     ///
     /// [wiki_article]: https://en.wikipedia.org/wiki/Integer_square_root
-    fn integer_sqrt(&self) -> Self
-        where
-            Self: Sized,
-    {
-        self.integer_sqrt_checked()
-            .expect("cannot calculate square root of negative number")
+    fn integer_sqrt(&self) -> Self where Self: Sized {
+        self.integer_sqrt_checked().expect("cannot calculate square root of negative number")
     }
 
     /// Find the integer square root, returning `None` if the number is negative (this can never
@@ -45,7 +41,7 @@ pub trait IntegerSquareRoot {
 }
 
 // copied const version
-pub const fn sqrt_integer(value: u32) -> u32 {
+pub const fn integer_sqrt(value: u32) -> u32 {
     if value == 0 {
         return 0;
     }
@@ -70,6 +66,12 @@ pub const fn sqrt_integer(value: u32) -> u32 {
         bit = bit >> 2;
     }
     return result;
+}
+
+/// Integer square root, rounded up
+pub const fn integer_sqrt_up(value: u32) -> u32 {
+    let sqrt = integer_sqrt(value);
+    return if sqrt * sqrt == value { sqrt } else { sqrt + 1 };
 }
 
 impl<T: num_traits::PrimInt> IntegerSquareRoot for T {
@@ -108,8 +110,8 @@ impl<T: num_traits::PrimInt> IntegerSquareRoot for T {
 #[cfg(test)]
 mod tests {
     use super::IntegerSquareRoot;
+    use super::{integer_sqrt, integer_sqrt_up};
     use core::{i8, u16, u64, u8};
-    use sqrt_integer;
 
     macro_rules! gen_tests {
         ($($type:ty => $fn_name:ident),*) => {
@@ -193,7 +195,24 @@ mod tests {
             (80, 8),
         ];
         for &(in_, out) in tests.iter() {
-            assert_eq!(sqrt_integer(in_), out, "in {}", in_);
+            assert_eq!(integer_sqrt(in_), out, "in {}", in_);
+        }
+    }
+
+    #[test]
+    fn test_const_up() {
+        let tests = [
+            (0, 0),
+            (1, 1),
+            (2, 2),
+            (3, 2),
+            (4, 2),
+            (80, 9),
+            (81, 9),
+            (82, 10),
+        ];
+        for &(in_, out) in tests.iter() {
+            assert_eq!(integer_sqrt_up(in_), out, "in {}", in_);
         }
     }
 }
