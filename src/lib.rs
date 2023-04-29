@@ -74,6 +74,39 @@ pub const fn integer_sqrt_up(value: u32) -> u32 {
     return if sqrt * sqrt == value { sqrt } else { sqrt + 1 };
 }
 
+// copied const version
+pub const fn integer_sqrt_64(value: u64) -> u64 {
+    if value == 0 {
+        return 0;
+    }
+
+    // Compute bit, the largest power of 4 <= n
+    let max_shift: u32 = 0u64.leading_zeros() - 1;
+    let shift: u32 = (max_shift - value.leading_zeros()) & !1;
+    let mut bit = 1 << shift;
+
+    // Algorithm based on the implementation in:
+    // https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Binary_numeral_system_(base_2)
+    // Note that result/bit are logically unsigned (even if T is signed).
+    let mut n = value;
+    let mut result = 0;
+    while bit != 0 {
+        if n >= (result + bit) {
+            n = n - (result + bit);
+            result = (result >> 1) + bit;
+        } else {
+            result = result >> 1;
+        }
+        bit = bit >> 2;
+    }
+    return result;
+}
+
+pub const fn integer_sqrt_up_64(value: u64) -> u64 {
+    let sqrt = integer_sqrt_64(value);
+    return if sqrt * sqrt == value { sqrt } else { sqrt + 1 };
+}
+
 impl<T: num_traits::PrimInt> IntegerSquareRoot for T {
     fn integer_sqrt_checked(&self) -> Option<Self> {
         use core::cmp::Ordering;
@@ -112,6 +145,7 @@ mod tests {
     use super::IntegerSquareRoot;
     use super::{integer_sqrt, integer_sqrt_up};
     use core::{i8, u16, u64, u8};
+    use ::{integer_sqrt_64, integer_sqrt_up_64};
 
     macro_rules! gen_tests {
         ($($type:ty => $fn_name:ident),*) => {
@@ -213,6 +247,39 @@ mod tests {
         ];
         for &(in_, out) in tests.iter() {
             assert_eq!(integer_sqrt_up(in_), out, "in {}", in_);
+        }
+    }
+
+    #[test]
+    fn test_const_64() {
+        let tests = [
+            (0, 0),
+            (1, 1),
+            (2, 1),
+            (3, 1),
+            (4, 2),
+            (81, 9),
+            (80, 8),
+        ];
+        for &(in_, out) in tests.iter() {
+            assert_eq!(integer_sqrt_64(in_), out, "in {}", in_);
+        }
+    }
+
+    #[test]
+    fn test_const_up_64() {
+        let tests = [
+            (0, 0),
+            (1, 1),
+            (2, 2),
+            (3, 2),
+            (4, 2),
+            (80, 9),
+            (81, 9),
+            (82, 10),
+        ];
+        for &(in_, out) in tests.iter() {
+            assert_eq!(integer_sqrt_up_64(in_), out, "in {}", in_);
         }
     }
 }
